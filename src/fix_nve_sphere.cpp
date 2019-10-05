@@ -11,12 +11,15 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
-#include "fix_nve_sphere.h"
 #include <cmath>
+#include <cstdio>
 #include <cstring>
+#include "fix_nve_sphere.h"
 #include "atom.h"
 #include "domain.h"
 #include "atom_vec.h"
+#include "update.h"
+#include "respa.h"
 #include "force.h"
 #include "error.h"
 #include "math_vector.h"
@@ -69,7 +72,7 @@ FixNVESphere::FixNVESphere(LAMMPS *lmp, int narg, char **arg) :
 
   if (!atom->sphere_flag)
     error->all(FLERR,"Fix nve/sphere requires atom style sphere");
-  if (extra == DIPOLE && !atom->mu_flag)
+  if (extra == DIPOLE && !atom->mum_flag)
     error->all(FLERR,"Fix nve/sphere update dipole requires atom attribute mu");
 }
 
@@ -139,7 +142,7 @@ void FixNVESphere::initial_integrate(int /*vflag*/)
   // update mu for dipoles
 
   if (extra == DIPOLE) {
-    double **mu = atom->mu;
+    double **mum = atom->mum;
     if (dlm == NODLM) {
 
       // d_mu/dt = omega cross mu
@@ -147,22 +150,22 @@ void FixNVESphere::initial_integrate(int /*vflag*/)
 
       for (int i = 0; i < nlocal; i++)
         if (mask[i] & groupbit)
-          if (mu[i][3] > 0.0) {
-            g[0] = mu[i][0] + dtv * (omega[i][1]*mu[i][2]-omega[i][2]*mu[i][1]);
-            g[1] = mu[i][1] + dtv * (omega[i][2]*mu[i][0]-omega[i][0]*mu[i][2]);
-            g[2] = mu[i][2] + dtv * (omega[i][0]*mu[i][1]-omega[i][1]*mu[i][0]);
+          if (mum[i][3] > 0.0) {
+            g[0] = mum[i][0] + dtv * (omega[i][1]*mum[i][2]-omega[i][2]*mum[i][1]);
+            g[1] = mum[i][1] + dtv * (omega[i][2]*mum[i][0]-omega[i][0]*mum[i][2]);
+            g[2] = mum[i][2] + dtv * (omega[i][0]*mum[i][1]-omega[i][1]*mum[i][0]);
             msq = g[0]*g[0] + g[1]*g[1] + g[2]*g[2];
-            scale = mu[i][3]/sqrt(msq);
-            mu[i][0] = g[0]*scale;
-            mu[i][1] = g[1]*scale;
-            mu[i][2] = g[2]*scale;
+            scale = mum[i][3]/sqrt(msq);
+            mum[i][0] = g[0]*scale;
+            mum[i][1] = g[1]*scale;
+            mum[i][2] = g[2]*scale;
           }
     } else {
 
       // integrate orientation following Dullweber-Leimkuhler-Maclachlan scheme
 
       for (int i = 0; i < nlocal; i++) {
-        if (mask[i] & groupbit && mu[i][3] > 0.0) {
+        if (mask[i] & groupbit && mum[i][3] > 0.0) {
 
           // Construct Q from dipole:
           // Q is the rotation matrix from space frame to body frame
@@ -171,10 +174,10 @@ void FixNVESphere::initial_integrate(int /*vflag*/)
           // define mu to lie along the z axis in the body frame
           // take the unit dipole to avoid getting a scaling matrix
 
-          inv_len_mu = 1.0/mu[i][3];
-          a[0] = mu[i][0]*inv_len_mu;
-          a[1] = mu[i][1]*inv_len_mu;
-          a[2] = mu[i][2]*inv_len_mu;
+          inv_len_mu = 1.0/mum[i][3];
+          a[0] = mum[i][0]*inv_len_mu;
+          a[1] = mum[i][1]*inv_len_mu;
+          a[2] = mum[i][2]*inv_len_mu;
 
           // v = a x [0 0 1] - cross product of mu in space and body frames
           // s = |v|
@@ -262,9 +265,9 @@ void FixNVESphere::initial_integrate(int /*vflag*/)
           omega[i][2] = w_temp[2];
 
           // Set dipole according to updated Q: mu = Q^T.[0 0 1] * |mu|
-          mu[i][0] = Q_temp[2][0] * mu[i][3];
-          mu[i][1] = Q_temp[2][1] * mu[i][3];
-          mu[i][2] = Q_temp[2][2] * mu[i][3];
+          mum[i][0] = Q_temp[2][0] * mum[i][3];
+          mum[i][1] = Q_temp[2][1] * mum[i][3];
+          mum[i][2] = Q_temp[2][2] * mum[i][3];
         }
       }
     }

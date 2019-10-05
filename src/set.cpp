@@ -11,11 +11,11 @@
    See the README file in the top-level LAMMPS directory.
 ------------------------------------------------------------------------- */
 
-#include "set.h"
 #include <mpi.h>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
-#include <climits>
+#include "set.h"
 #include "atom.h"
 #include "atom_vec.h"
 #include "atom_vec_ellipsoid.h"
@@ -26,7 +26,9 @@
 #include "region.h"
 #include "group.h"
 #include "comm.h"
+#include "neighbor.h"
 #include "force.h"
+#include "pair.h"
 #include "input.h"
 #include "variable.h"
 #include "random_park.h"
@@ -46,7 +48,7 @@ enum{TYPE,TYPE_FRACTION,MOLECULE,X,Y,Z,CHARGE,MASS,SHAPE,LENGTH,TRI,
      THETA,THETA_RANDOM,ANGMOM,OMEGA,
      DIAMETER,DENSITY,VOLUME,IMAGE,BOND,ANGLE,DIHEDRAL,IMPROPER,
      MESO_E,MESO_CV,MESO_RHO,EDPD_TEMP,EDPD_CV,CC,SMD_MASS_DENSITY,
-     SMD_CONTACT_RADIUS,DPDTHETA,INAME,DNAME,VX,VY,VZ};
+     SMD_CONTACT_RADIUS,DPDTHETA,INAME,DNAME,VX,VY,VZ,MUM};
 
 #define BIG INT_MAX
 
@@ -563,6 +565,19 @@ void Set::command(int narg, char **arg)
       set(DNAME);
       iarg += 2;
 
+    } else if (strcmp(arg[iarg],"mum") == 0) {
+            if (iarg+4 > narg) error->all(FLERR,"Illegal set command");
+            if (strstr(arg[iarg+1],"v_") == arg[iarg+1]) varparse(arg[iarg+1],1);
+            else xvalue = force->numeric(FLERR,arg[iarg+1]);
+            if (strstr(arg[iarg+2],"v_") == arg[iarg+2]) varparse(arg[iarg+2],2);
+            else yvalue = force->numeric(FLERR,arg[iarg+2]);
+            if (strstr(arg[iarg+3],"v_") == arg[iarg+3]) varparse(arg[iarg+3],3);
+            else zvalue = force->numeric(FLERR,arg[iarg+3]);
+            if (!atom->mum_flag)
+              error->all(FLERR,"Cannot set this attribute for this atom style");
+            set(MUM);
+            iarg += 4;
+
     } else error->all(FLERR,"Illegal set command");
 
     // statistics
@@ -957,6 +972,14 @@ void Set::set(int keyword)
 
     else if (keyword == DNAME) {
       atom->dvector[index_custom][i] = dvalue;
+    }
+    else if (keyword == MUM) {
+          double **mum = atom->mum;
+          mum[i][0] = xvalue;
+          mum[i][1] = yvalue;
+          mum[i][2] = zvalue;
+          mum[i][3] = sqrt(mum[i][0]*mum[i][0] + mum[i][1]*mum[i][1] +
+                          mum[i][2]*mum[i][2]);
     }
 
     count++;

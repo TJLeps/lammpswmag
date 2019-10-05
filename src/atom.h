@@ -65,6 +65,10 @@ class Atom : protected Pointers {
   double *radius,*rmass;
   int *ellipsoid,*line,*tri,*body;
 
+  // MAGNETIC package
+
+  double **mum;
+
   // SPIN package
 
   double **sp;
@@ -155,6 +159,10 @@ class Atom : protected Pointers {
   int cs_flag,csforce_flag,vforce_flag,ervelforce_flag,etag_flag;
   int rho_flag,e_flag,cv_flag,vest_flag;
   int dpd_flag,edpd_flag,tdpd_flag;
+
+  // MAGNETIC package
+
+  int mum_flag;
 
   //USER-SPIN package
 
@@ -425,11 +433,6 @@ E: Incorrect atom format in data file
 
 Number of values per atom line in the data file is not consistent with
 the atom style.
-
-E: Incorrect format of ... section in data file
-
-Number or type of values per line in the given section of the data file
-is not consistent with the requirements for this section.
 
 E: Invalid atom type in Atoms section of data file
 

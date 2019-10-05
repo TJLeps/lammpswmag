@@ -28,7 +28,6 @@
 #include "fix_store.h"
 #include "memory.h"
 #include "error.h"
-
 using namespace LAMMPS_NS;
 
 // customize by adding keyword
@@ -42,7 +41,7 @@ enum{ID,MOL,PROC,PROCP1,TYPE,ELEMENT,MASS,
      Q,MUX,MUY,MUZ,MU,RADIUS,DIAMETER,
      OMEGAX,OMEGAY,OMEGAZ,ANGMOMX,ANGMOMY,ANGMOMZ,
      TQX,TQY,TQZ,
-     COMPUTE,FIX,VARIABLE,INAME,DNAME};
+     COMPUTE,FIX,VARIABLE,INAME,DNAME,MUMX,MUMY,MUMZ};
 enum{LT,LE,GT,GE,EQ,NEQ,XOR};
 
 #define INVOKED_PERATOM 8
@@ -839,6 +838,26 @@ int DumpCustom::count()
         ptr = &atom->mu[0][3];
         nstride = 4;
 
+      } else if (thresh_array[ithresh] == MUMX) {
+        if (!atom->mum_flag)
+          error->all(FLERR,
+                     "Threshold for an atom property that isn't allocated");
+        ptr = &atom->mum[0][0];
+        nstride = 4;
+      } else if (thresh_array[ithresh] == MUMY) {
+        if (!atom->mum_flag)
+          error->all(FLERR,
+                     "Threshold for an atom property that isn't allocated");
+        ptr = &atom->mum[0][1];
+        nstride = 4;
+      } else if (thresh_array[ithresh] == MUMZ) {
+        if (!atom->mum_flag)
+          error->all(FLERR,
+                     "Threshold for an atom property that isn't allocated");
+        ptr = &atom->mum[0][2];
+        nstride = 4;
+
+
       } else if (thresh_array[ithresh] == RADIUS) {
         if (!atom->radius_flag)
           error->all(FLERR,
@@ -1279,6 +1298,22 @@ int DumpCustom::parse_fields(int narg, char **arg)
       if (!atom->mu_flag)
         error->all(FLERR,"Dumping an atom property that isn't allocated");
       pack_choice[i] = &DumpCustom::pack_mu;
+      vtype[i] = Dump::DOUBLE;
+
+    } else if (strcmp(arg[iarg],"mumx") == 0) {
+      if (!atom->mum_flag)
+        error->all(FLERR,"Dumping an atom property that isn't allocated");
+      pack_choice[i] = &DumpCustom::pack_mumx;
+      vtype[i] = Dump::DOUBLE;
+    } else if (strcmp(arg[iarg],"mumy") == 0) {
+      if (!atom->mum_flag)
+        error->all(FLERR,"Dumping an atom property that isn't allocated");
+      pack_choice[i] = &DumpCustom::pack_mumy;
+      vtype[i] = Dump::DOUBLE;
+    } else if (strcmp(arg[iarg],"mumz") == 0) {
+      if (!atom->mum_flag)
+        error->all(FLERR,"Dumping an atom property that isn't allocated");
+      pack_choice[i] = &DumpCustom::pack_mumz;
       vtype[i] = Dump::DOUBLE;
 
     } else if (strcmp(arg[iarg],"radius") == 0) {
@@ -1783,6 +1818,10 @@ int DumpCustom::modify_param(int narg, char **arg)
     else if (strcmp(arg[1],"muy") == 0) thresh_array[nthresh] = MUY;
     else if (strcmp(arg[1],"muz") == 0) thresh_array[nthresh] = MUZ;
     else if (strcmp(arg[1],"mu") == 0) thresh_array[nthresh] = MU;
+
+    else if (strcmp(arg[1],"mumx") == 0) thresh_array[nthresh] = MUMX;
+    else if (strcmp(arg[1],"mumy") == 0) thresh_array[nthresh] = MUMY;
+    else if (strcmp(arg[1],"mumz") == 0) thresh_array[nthresh] = MUMZ;
 
     else if (strcmp(arg[1],"radius") == 0) thresh_array[nthresh] = RADIUS;
     else if (strcmp(arg[1],"diameter") == 0) thresh_array[nthresh] = DIAMETER;
@@ -2696,6 +2735,42 @@ void DumpCustom::pack_mu(int n)
     n += size_one;
   }
 }
+/* ---------------------------------------------------------------------- */
+
+void DumpCustom::pack_mumx(int n)
+{
+  double **mum = atom->mum;
+
+  for (int i = 0; i < nchoose; i++) {
+    buf[n] = mum[clist[i]][0];
+    n += size_one;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+
+void DumpCustom::pack_mumy(int n)
+{
+  double **mum = atom->mum;
+
+  for (int i = 0; i < nchoose; i++) {
+    buf[n] = mum[clist[i]][1];
+    n += size_one;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+
+void DumpCustom::pack_mumz(int n)
+{
+  double **mum = atom->mum;
+
+  for (int i = 0; i < nchoose; i++) {
+    buf[n] = mum[clist[i]][2];
+    n += size_one;
+  }
+}
+
 
 /* ---------------------------------------------------------------------- */
 

@@ -292,7 +292,7 @@ void KSpace::qsum_qsq(int warning_flag)
     warn_nocharge = 0;
   }
 
-  q2 = qsqsum * force->qqrd2e;
+  q2 = fabs(qsqsum * force->qqrd2e);
 
   // not yet sure of the correction needed for non-neutral systems
   // so issue warning or error
